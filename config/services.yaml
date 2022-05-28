@@ -1,0 +1,64 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Tests/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+    test.rest.api.service:
+        class: App\Entity\Services\RestApiService
+    test.grpc.service:
+        class: App\Entity\Services\GRPCService
+    test.http.service:
+        class: App\Entity\Services\HttpService
+
+    test.rest.api.converter:
+        class: App\Services\MicroServices\Converter\RestApiConverter
+        arguments:
+            $service: '@test.rest.api.service'
+    test.grpc.converter:
+        class: App\Services\MicroServices\Converter\GRPCConverter
+        arguments:
+            $service: '@test.grpc.service'
+    test.http.converter:
+        class: App\Services\MicroServices\Converter\HttpConverter
+        arguments:
+            $service: '@test.http.service'
+
+    test.rest.api.service.dao:
+        class: App\Services\MicroServices\DAO\RestApiServiceDAO
+        arguments:
+            $service: '@test.rest.api.service'
+    test.grpc.service.dao:
+        class: App\Services\MicroServices\DAO\GRPCServiceDAO
+        arguments:
+            $service: '@test.grpc.service'
+    test.http.service.dao:
+        class: App\Services\MicroServices\DAO\HttpServiceDAO
+        arguments:
+            $service: '@test.http.service'
+    App\Services\MicroServices\ServiceManager:
+        arguments:
+            $services: ['@test.rest.api.service.dao', '@test.grpc.service.dao', '@test.http.service.dao']
+    App\Services\MicroServices\ConverterManager:
+        arguments:
+            $converters: ['@test.rest.api.converter', '@test.grpc.converter', '@test.http.converter']
